@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake News Detection & News Sentiment Analysis System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-container">
+            <div class="logo">
+                <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div>
+                    <h1>VeriNews <span class="badge-ai">NLP Sentinel</span></h1>
+                    <p class="subtitle">Fake News Detection & News Sentiment Analysis System</p>
+                </div>
+            </div>
+            <div class="header-tags">
+                <span class="tag"><i class="fa-solid fa-code-branch"></i> TF-IDF & Word2Vec</span>
+                <span class="tag"><i class="fa-solid fa-brain"></i> Naive Bayes & Logistic Regression</span>
+                <span class="tag"><i class="fa-solid fa-heart-pulse"></i> Sentiment & Subjectivity</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Input Section -->
+        <section class="card input-card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-newspaper"></i> 1. Input News Article or Headline</h2>
+                <div class="quick-samples">
+                    <span>Quick Test Samples:</span>
+                    <button type="button" class="btn-sample sample-real" onclick="loadSample('real_space')">
+                        <i class="fa-solid fa-circle-check"></i> Real: ISRO Space
+                    </button>
+                    <button type="button" class="btn-sample sample-real" onclick="loadSample('real_health')">
+                        <i class="fa-solid fa-circle-check"></i> Real: WHO Vaccine
+                    </button>
+                    <button type="button" class="btn-sample sample-fake" onclick="loadSample('fake_miracle')">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Fake: Miracle Cure
+                    </button>
+                    <button type="button" class="btn-sample sample-fake" onclick="loadSample('fake_conspiracy')">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Fake: 5G Conspiracy
+                    </button>
+                </div>
+            </div>
+
+            <form id="newsForm">
+                <div class="form-group">
+                    <textarea id="news_text" name="news_text" rows="7" placeholder="Paste the full news article, broadcast excerpt, or viral social media headline here to verify its authenticity..."></textarea>
+                    <div class="char-bar">
+                        <span id="charCount">0 characters | 0 words</span>
+                        <button type="button" class="btn-clear" onclick="clearText()"><i class="fa-solid fa-eraser"></i> Clear</button>
+                    </div>
+                </div>
+
+                <div class="options-bar">
+                    <div class="model-select-group">
+                        <label for="model_type"><i class="fa-solid fa-microchip"></i> Select NLP Classifier:</label>
+                        <select id="model_type" name="model_type">
+                            <option value="lr" selected>Logistic Regression (TF-IDF)</option>
+                            <option value="nb">Multinomial Naïve Bayes (TF-IDF)</option>
+                            <option value="ensemble">Ensemble Hybrid (LR + MNB)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-analyze" id="analyzeBtn">
+                        <i class="fa-solid fa-shield-virus"></i> Analyze Veracity & Sentiment
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Loader -->
+        <div id="loader" class="loader-container hidden">
+            <div class="spinner"></div>
+            <p>Cleaning text tokens, computing TF-IDF vectors, and evaluating emotional polarity...</p>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="alert alert-error hidden"></div>
+
+        <!-- Results Dashboard -->
+        <section id="resultsSection" class="results-dashboard hidden">
+            <!-- Verdict Hero Card -->
+            <div id="verdictCard" class="card verdict-card">
+                <div class="verdict-header">
+                    <div class="verdict-badge" id="verdictBadge">
+                        <i class="fa-solid fa-circle-check" id="verdictIcon"></i>
+                        <span id="verdictText">REAL NEWS</span>
+                    </div>
+                    <div class="confidence-tag" id="confidenceTag">Confidence: 98.4%</div>
+                </div>
+
+                <div class="probability-bars-grid">
+                    <div class="prob-box real-box">
+                        <div class="prob-title">
+                            <span><i class="fa-solid fa-check"></i> Real News Likelihood</span>
+                            <strong id="realPct">0%</strong>
+                        </div>
+                        <div class="bar-bg"><div class="bar-fill real-fill" id="realFill"></div></div>
+                    </div>
+                    <div class="prob-box fake-box">
+                        <div class="prob-title">
+                            <span><i class="fa-solid fa-triangle-exclamation"></i> Fake News Likelihood</span>
+                            <strong id="fakePct">0%</strong>
+                        </div>
+                        <div class="bar-bg"><div class="bar-fill fake-fill" id="fakeFill"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sentiment & Subjectivity Analysis Section -->
+            <div class="grid-2col">
+                <!-- Sentiment Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-heart-pulse"></i> News Sentiment Analysis</h2>
+                        <span class="badge-pill" id="sentimentBadge">Neutral</span>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-item">
+                            <span class="lbl">Sentiment Polarity</span>
+                            <span class="val" id="polarityVal">0.00</span>
+                            <span class="sub">Range: -1.0 (Neg) to +1.0 (Pos)</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="lbl">Tone Classification</span>
+                            <span class="val-sm" id="sentimentTone">Neutral</span>
+                            <span class="sub" id="wordCountsSummary">Pos: 0 | Neg: 0</span>
+                        </div>
+                    </div>
+                    <div class="sentiment-meter-bar">
+                        <div class="meter-center"></div>
+                        <div class="meter-pointer" id="polarityPointer"></div>
+                    </div>
+                    <div class="meter-labels">
+                        <span>Negative (-1.0)</span>
+                        <span>Neutral (0.0)</span>
+                        <span>Positive (+1.0)</span>
+                    </div>
+                </div>
+
+                <!-- Subjectivity Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-scale-balanced"></i> Subjectivity vs. Objectivity</h2>
+                        <span class="badge-pill" id="subjectivityBadge">Objective</span>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-item">
+                            <span class="lbl">Subjectivity Index</span>
+                            <span class="val" id="subjectivityScore">0.00</span>
+                            <span class="sub">0.0 (Factual) to 1.0 (Opinion)</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="lbl">Linguistic Bias</span>
+                            <span class="val-sm" id="subjectivityLabel">Factual & Objective</span>
+                            <span class="sub" id="clickbaitHits">Clickbait Triggers: 0</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="subjectivityFill"></div>
+                    </div>
+                    <p class="explanation-note">
+                        <i class="fa-solid fa-info-circle"></i> Fake news articles typically exploit high subjectivity and emotional adjectives to provoke sensational reactions.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Stylometric Cues & NLP Breakdown -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-magnifying-glass-chart"></i> Stylometric Cues & Sensationalism Markers</h2>
+                </div>
+                <div class="cues-grid">
+                    <div class="cue-item">
+                        <div class="cue-label"><i class="fa-solid fa-font"></i> Uppercase Ratio</div>
+                        <div class="cue-val" id="uppercaseRatio">0.0%</div>
+                        <span class="cue-sub">Excess caps indicate shouting/clickbait</span>
+                    </div>
+                    <div class="cue-item">
+                        <div class="cue-label"><i class="fa-solid fa-exclamation"></i> Exclamations (!)</div>
+                        <div class="cue-val" id="exclamationCount">0</div>
+                        <span class="cue-sub">Sensationalist punctuation marks</span>
+                    </div>
+                    <div class="cue-item">
+                        <div class="cue-label"><i class="fa-solid fa-circle-question"></i> Questions (?)</div>
+                        <div class="cue-val" id="questionCount">0</div>
+                        <span class="cue-sub">Speculative question headlines</span>
+                    </div>
+                    <div class="cue-item">
+                        <div class="cue-label"><i class="fa-solid fa-fire"></i> Sensationalism Score</div>
+                        <div class="cue-val" id="sensationalismScore">0 / 100</div>
+                        <span class="cue-sub">Composite linguistic urgency score</span>
+                    </div>
+                </div>
+
+                <div class="trigger-box mt-3" id="triggersContainer">
+                    <span class="trigger-label"><i class="fa-solid fa-tag"></i> Detected Clickbait Phrases:</span>
+                    <div id="triggerTags" class="tag-cloud"></div>
+                </div>
+            </div>
+
+            <!-- Technical Diagnostics -->
+            <div class="card diagnostics-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-terminal"></i> NLP Pipeline Diagnostics</h2>
+                    <span class="engine-tag" id="engineTag">Classifier: Logistic Regression</span>
+                </div>
+                <div class="diagnostics-content">
+                    <div class="diag-line"><strong>Token Count:</strong> <span id="diagTokens">0</span> tokens after stopword filtering</div>
+                    <div class="diag-line"><strong>Cleaned Features (First 20 n-grams):</strong> <code id="diagSample">-</code></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <p><strong>Natural Language Processing (NLP) Major Project</strong> | Group of 5 Students | Academic Implementation</p>
+        <p>Project 4: Fake News Detection and News Sentiment Analysis System | TF-IDF, Word2Vec, Naïve Bayes, Logistic Regression & Sentiment Analysis</p>
+    </footer>
+
+    <script src="/static/js/script.js"></script>
+</body>
+</html>
+
